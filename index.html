@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+
+<title>Bitcoin Wallet Insights</title>
+
+<link rel="icon" href="https://cryptologos.cc/logos/bitcoin-btc-logo.png">
+
+<style>
+
+body{
+background:#0d1117;
+color:white;
+font-family:Arial;
+text-align:center;
+padding:20px;
+}
+
+.container{
+max-width:1100px;
+margin:auto;
+background:#161b22;
+padding:25px;
+border-radius:12px;
+}
+
+input{
+width:70%;
+padding:10px;
+border-radius:6px;
+border:none;
+}
+
+button{
+padding:10px 20px;
+background:#f7931a;
+border:none;
+border-radius:6px;
+color:white;
+cursor:pointer;
+margin:5px;
+}
+
+.hidden{
+display:none;
+}
+
+/* cards */
+
+.stats-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:15px;
+margin-top:25px;
+}
+
+.stat-card{
+background:#1f2630;
+padding:18px;
+border-radius:12px;
+text-align:left;
+}
+
+.stat-title{
+font-size:13px;
+color:#9ca3af;
+margin-bottom:6px;
+}
+
+.stat-value{
+font-size:20px;
+font-weight:bold;
+}
+
+/* table */
+
+.table-wrapper{
+overflow-x:auto;
+margin-top:25px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+min-width:850px;
+}
+
+th{
+text-align:left;
+color:#9ca3af;
+font-size:13px;
+}
+
+td,th{
+padding:12px;
+border-bottom:1px solid #30363d;
+font-size:13px;
+}
+
+td:nth-child(4),
+td:nth-child(5){
+text-align:right;
+font-family:monospace;
+}
+
+a{
+color:#58a6ff;
+text-decoration:none;
+}
+
+.sent{
+color:#ef4444;
+font-weight:bold;
+}
+
+.received{
+color:#22c55e;
+font-weight:bold;
+}
+
+@media(max-width:600px){
+
+input{
+width:100%;
+margin-bottom:10px;
+}
+
+button{
+width:100%;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Bitcoin Wallet Insights</h2>
+
+<input id="address" placeholder="Enter BTC wallet address">
+<button onclick="analyze()">Analyze</button>
+
+<div id="stats"></div>
+
+<div id="dashboard" class="hidden">
+
+<h3>Recent Transactions</h3>
+
+<div class="table-wrapper">
+
+<table>
+
+<thead>
+<tr>
+<th>#</th>
+<th>Transaction</th>
+<th>Direction</th>
+<th>BTC</th>
+<th>Fee</th>
+<th>UTC</th>
+<th>IST</th>
+</tr>
+</thead>
+
+<tbody id="txTable"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+function validBTC(address){
+return /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/.test(address)
+}
+
+async function analyze(){
+
+const address=document.getElementById("address").value
+
+if(!validBTC(address)){
+alert("Invalid BTC address")
+return
+}
+
+document.getElementById("stats").innerHTML="Loading..."
+
+const wallet=await fetch(`https://blockstream.info/api/address/${address}`)
+const w=await wallet.json()
+
+const funded=w.chain_stats.funded_txo_sum
+const spent=w.chain_stats.spent_txo_sum
+const txcount=w.chain_stats.tx_count
+
+const balance=(funded-spent)/100000000
+const received=funded/100000000
+const sent=spent/100000000
+
+const market=await fetch("https://api.coingecko.com/api/v3/coins/bitcoin")
+const m=await market.json()
+
+const supply=m.market_data.circulating_supply
+const price=m.market_data.current_price.usd
+
+const percent=(balance/supply)*100
+const usd=balance*price
+
+document.getElementById("dashboard").style.display="block"
+
+fetchTransactions(address)
+
+/* render first cards */
+
+document.getElementById("stats").innerHTML=`
+
+<div id="cards" class="stats-grid">
+
+<div class="stat-card">
+<div class="stat-title">Balance</div>
+<div class="stat-value">${balance.toFixed(8)} BTC</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-title">Total Received</div>
+<div class="stat-value">${received.toFixed(8)} BTC</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-title">Total Sent</div>
+<div class="stat-value">${sent.toFixed(8)} BTC</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-title">Transactions</div>
+<div class="stat-value">${txcount}</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-title">USD Value</div>
+<div class="stat-value">$${usd.toLocaleString()}</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-title">Ownership of BTC Supply</div>
+<div class="stat-value">${percent.toFixed(10)}%</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-title">BTC Circulating Supply</div>
+<div class="stat-value">${supply.toLocaleString()} BTC</div>
+</div>
+
+</div>
+
+`
+
+}
+
+async function fetchTransactions(address){
+
+const res=await fetch(`https://blockstream.info/api/address/${address}/txs`)
+const txs=await res.json()
+
+const table=document.getElementById("txTable")
+table.innerHTML=""
+
+let totalFees=0
+let highestFee=0
+let lowestFee=Infinity
+
+txs.forEach((tx,i)=>{
+
+let received=0
+let sent=0
+
+tx.vout.forEach(out=>{
+if(out.scriptpubkey_address===address){
+received+=out.value
+}
+})
+
+tx.vin.forEach(input=>{
+if(input.prevout && input.prevout.scriptpubkey_address===address){
+sent+=input.prevout.value
+}
+})
+
+let btc=0
+let direction=""
+let cssClass=""
+
+if(received>sent){
+btc=received/100000000
+direction="Received"
+cssClass="received"
+}else{
+btc=sent/100000000
+direction="Sent"
+cssClass="sent"
+}
+
+const fee=tx.fee/100000000
+
+totalFees+=fee
+if(fee>highestFee) highestFee=fee
+if(fee<lowestFee) lowestFee=fee
+
+const timestamp=tx.status.block_time
+
+if(timestamp){
+
+const utc=new Date(timestamp*1000).toUTCString()
+
+const ist=new Date(timestamp*1000).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})
+
+const explorer=`https://blockstream.info/tx/${tx.txid}`
+
+table.innerHTML+=`
+
+<tr>
+
+<td>${i+1}</td>
+
+<td>
+<a href="${explorer}" target="_blank">
+${tx.txid.substring(0,16)}...
+</a>
+</td>
+
+<td class="${cssClass}">
+${direction}
+</td>
+
+<td>${btc.toFixed(8)}</td>
+
+<td>${fee.toFixed(8)}</td>
+
+<td>${utc}</td>
+
+<td>${ist}</td>
+
+</tr>
+
+`
+
+}
+
+})
+
+const avgFee=totalFees/txs.length
+
+/* append fee cards into same grid */
+
+document.getElementById("cards").innerHTML += `
+
+<div class="stat-card">
+<div class="stat-title">Total Fees Paid</div>
+<div class="stat-value">${totalFees.toFixed(8)} BTC</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-title">Average Fee</div>
+<div class="stat-value">${avgFee.toFixed(8)} BTC</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-title">Highest Fee</div>
+<div class="stat-value">${highestFee.toFixed(8)} BTC</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-title">Lowest Fee</div>
+<div class="stat-value">${lowestFee.toFixed(8)} BTC</div>
+</div>
+
+`
+
+}
+
+</script>
+
+</body>
+</html>
