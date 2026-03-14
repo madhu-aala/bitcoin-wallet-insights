@@ -1,5 +1,9 @@
 # Bitcoin Wallet Insights
 
+![Code Size](https://img.shields.io/github/languages/code-size/madhu-aala/bitcoin-wallet-insights)
+![Repo Size](https://img.shields.io/github/repo-size/madhu-aala/bitcoin-wallet-insights)
+![Last Commit](https://img.shields.io/github/last-commit/madhu-aala/bitcoin-wallet-insights)
+
 A lightweight web dashboard that allows users to analyze Bitcoin wallet activity, view transaction history, and track wallet balances using public blockchain data.
 
 Features
