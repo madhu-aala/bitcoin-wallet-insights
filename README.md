@@ -1,5 +1,6 @@
 # Bitcoin Wallet Insights
 
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=madhu-aala.bitcoin-wallet-insights)
 ![Code Size](https://img.shields.io/github/languages/code-size/madhu-aala/bitcoin-wallet-insights)
 ![Repo Size](https://img.shields.io/github/repo-size/madhu-aala/bitcoin-wallet-insights)
 ![Last Commit](https://img.shields.io/github/last-commit/madhu-aala/bitcoin-wallet-insights)
