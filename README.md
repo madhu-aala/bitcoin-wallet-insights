@@ -20,7 +20,10 @@ Tech Stack
 - JavaScript
 - Bitcoin API
 
-How to Use
+How to Use?
 1. Enter a Bitcoin wallet address
 2. Fetch wallet data
 3. View analytics and transaction history
+
+# Application Preview
+![Bitcoin Wallet Insights Dashboard](assets/app-preview.png)
