@@ -151,6 +151,8 @@ width:100%;
 
 <h3>Recent Transactions</h3>
 
+<p id="txCountLabel" style="margin-top:10px;color:#9ca3af;"></p>
+
 <div class="table-wrapper">
 
 <table>
@@ -216,7 +218,7 @@ const usd=balance*price
 
 document.getElementById("dashboard").style.display="block"
 
-fetchTransactions(address)
+fetchTransactions(address, txcount)
 
 /* render first cards */
 
@@ -265,13 +267,16 @@ document.getElementById("stats").innerHTML=`
 
 }
 
-async function fetchTransactions(address){
+async function fetchTransactions(address, txcount){
 
 const res=await fetch(`https://blockstream.info/api/address/${address}/txs`)
 const txs=await res.json()
 
 const table=document.getElementById("txTable")
 table.innerHTML=""
+
+document.getElementById("txCountLabel").innerText = 
+`Showing ${txs.length} of ${txcount} transactions`
 
 let totalFees=0
 let highestFee=0
